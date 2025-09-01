@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Two‑Phase Investment & Withdrawal Calculator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0b1020;
+      --panel: #121936;
+      --ink: #e6ecff;
+      --muted: #a7b0d6;
+      --accent: #7c9cff;
+      --accent-2: #4de1c5;
+      --danger: #ff6b6b;
+      --bord: #243058;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; background: radial-gradient(1200px 800px at 10% 0%, #0f1738 0%, var(--bg) 60%), var(--bg);
+      color: var(--ink); font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      min-height: 100vh; display: grid; place-items: start center; padding: 32px 16px;
+    }
+    .wrap { width: min(1100px, 100%); }
+    h1 { font-size: 28px; letter-spacing: 0.2px; margin: 0 0 8px; }
+    p.lede { color: var(--muted); margin: 0 0 24px; }
+    .grid { display: grid; gap: 16px; grid-template-columns: 1.3fr 1fr; }
+    @media (max-width: 950px) { .grid { grid-template-columns: 1fr; } }
+    .card { background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)); border: 1px solid var(--bord); border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+            padding: 18px; }
+    .card h2 { margin: 6px 0 16px; font-size: 18px; color: var(--ink); }
+
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+    .field { display: flex; flex-direction: column; gap: 8px; }
+    label { font-size: 12px; color: var(--muted); }
+    input[type="number"], select {
+      width: 100%; padding: 12px 12px; border-radius: 10px; border: 1px solid var(--bord);
+      outline: none; background: #0f1531; color: var(--ink); font-size: 14px; transition: border-color .2s, box-shadow .2s;
+    }
+    input[type="number"]:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(124,156,255,0.15); }
+
+    .actions { display: flex; gap: 10px; align-items: center; margin-top: 8px; flex-wrap: wrap; }
+    button {
+      appearance: none; border: 1px solid var(--bord); background: linear-gradient(180deg,#203066,#141e44); color: var(--ink);
+      padding: 10px 14px; border-radius: 10px; cursor: pointer; font-weight: 600; letter-spacing: .3px;
+      transition: transform .05s ease, box-shadow .2s ease, border-color .2s ease;
+    }
+    button.primary { background: linear-gradient(180deg, #6e8dff, #5173ff); border-color: #6e8dff; color: #0a1030; }
+    button:hover { transform: translateY(-1px); box-shadow: 0 8px 16px rgba(0,0,0,.25); }
+
+    .kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    @media (max-width: 520px) { .kpis { grid-template-columns: 1fr; } }
+    .kpi { background: #0f1531; border: 1px solid var(--bord); border-radius: 12px; padding: 14px; }
+    .kpi .label { font-size: 12px; color: var(--muted); }
+    .kpi .value { font-size: 22px; font-weight: 700; margin-top: 6px; }
+
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td { text-align: right; padding: 10px 8px; border-bottom: 1px dashed #22305c; }
+    th:first-child, td:first-child { text-align: left; }
+    thead th { position: sticky; top: 0; background: #10183a; z-index: 1; }
+    .table-wrap { max-height: 360px; overflow: auto; border: 1px solid var(--bord); border-radius: 12px; }
+
+    .notice { color: var(--muted); font-size: 12px; margin-top: 8px; }
+
+    .chart { height: 220px; width: 100%; position: relative; border: 1px solid var(--bord); border-radius: 12px; overflow: hidden; background: #0f1531; }
+    .bars { position:absolute; left: 50px; right: 10px; bottom: 24px; top: 10px; display:flex; align-items:flex-end; gap:8px; }
+    .yaxis { position:absolute; left: 8px; bottom: 24px; top: 10px; width: 42px; color: var(--muted); font-size: 11px; display:flex; flex-direction:column; justify-content:space-between; align-items:flex-end; }
+    .xaxis { position:absolute; left: 50px; right: 10px; bottom: 0; height: 22px; color: var(--muted); font-size: 11px; display:flex; align-items:center; gap:8px; }
+    .bar { flex: 1; min-width: 6px; background: linear-gradient(180deg, var(--accent-2), var(--accent)); border-radius: 6px 6px 0 0; }
+
+    .error { color: var(--danger); font-size: 12px; margin-top: 8px; display:none; }
+    footer { margin-top: 18px; font-size: 12px; color: var(--muted); }
+    .muted { color: var(--muted); font-size: 12px; margin-top: 6px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Two‑Phase Investment & Withdrawal Calculator</h1>
+    <p class="lede">Phase 1 builds your corpus; Phase 2 models yearly withdrawals with a (possibly different) return. Assumes monthly compounding for realism. ✨</p>
+
+    <div class="grid">
+      <!-- Inputs -->
+      <section class="card" aria-labelledby="inputs">
+        <h2 id="inputs">Inputs</h2>
+
+        <h3 style="margin:0 0 8px; font-size:14px; color:var(--accent-2);">Phase 1 — Accumulation</h3>
+        <div class="row">
+          <div class="field">
+            <label for="p0">Initial Investment</label>
+            <input id="p0" type="number" inputmode="decimal" min="0" step="0.01" value="100000" />
+          </div>
+          <div class="field">
+            <label for="r1">Initial Rate of Interest (% p.a.)</label>
+            <input id="r1" type="number" inputmode="decimal" min="0" step="0.01" value="8" />
+          </div>
+        </div>
+        <div class="row">
+          <div class="field">
+            <label for="contrib">Recurring Investment</label>
+            <input id="contrib" type="number" inputmode="decimal" min="0" step="0.01" value="10000" />
+          </div>
+          <div class="field">
+            <label for="contribFreq">Contribution Frequency</label>
+            <select id="contribFreq">
+              <option value="12" selected>Monthly</option>
+              <option value="1">Yearly</option>
+            </select>
+          </div>
+        </div>
+        <div class="row">
+          <div class="field">
+            <label for="y1">Initial Investing Period (years)</label>
+            <input id="y1" type="number" inputmode="decimal" min="0" step="0.25" value="10" />
+          </div>
+          <div class="field">
+            <label>&nbsp;</label>
+            <div class="muted">Compounding monthly. Contributions applied end of each contribution period.</div>
+          </div>
+        </div>
+
+        <hr style="border:0;border-top:1px dashed #243058;margin:12px 0;" />
+
+        <h3 style="margin:0 0 8px; font-size:14px; color:var(--accent-2);">Phase 2 — Withdrawals</h3>
+        <div class="row">
+          <div class="field">
+            <label for="wd">Annual Withdrawal Amount</label>
+            <input id="wd" type="number" inputmode="decimal" min="0" step="0.01" value="120000" />
+          </div>
+          <div class="field">
+            <label for="r2">Rate of Interest Post Initial Period (% p.a.)</label>
+            <input id="r2" type="number" inputmode="decimal" min="0" step="0.01" value="7" />
+          </div>
+        </div>
+        <div class="row">
+          <div class="field">
+            <label for="y2">Years to Stay Invested (post initial)</label>
+            <input id="y2" type="number" inputmode="decimal" min="0" step="0.25" value="20" />
+          </div>
+          <div class="field">
+            <label for="wdTiming">Withdrawal Timing</label>
+            <select id="wdTiming">
+              <option value="end" selected>End of each year</option>
+              <option value="begin">Beginning of each year</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button class="primary" id="calcBtn">Calculate</button>
+          <button id="resetBtn" title="Reset all fields">Reset</button>
+          <span class="notice">Tip: Try larger recurring investments or lower withdrawals to test sustainability.</span>
+        </div>
+        <div id="error" class="error" role="alert"></div>
+      </section>
+
+      <!-- Results -->
+      <section class="card" aria-labelledby="results">
+        <h2 id="results">Results</h2>
+        <div class="kpis" id="kpis">
+          <div class="kpi"><div class="label">Corpus After Initial Period</div><div class="value" id="corpus1">—</div></div>
+          <div class="kpi"><div class="label">Total Contributed (Phase 1)</div><div class="value" id="totContrib">—</div></div>
+          <div class="kpi"><div class="label">Depletion Year (if any)</div><div class="value" id="depletion">—</div></div>
+        </div>
+        <div class="chart" id="chart" aria-label="Post‑period corpus chart">
+          <div class="yaxis" id="yaxis"></div>
+          <div class="bars" id="bars" title="Year‑end balances"></div>
+          <div class="xaxis" id="xaxis"></div>
+        </div>
+      </section>
+    </div>
+
+    <!-- Schedule -->
+    <section class="card" style="margin-top:16px;" aria-labelledby="sched">
+      <h2 id="sched">Year‑by‑Year Projection (Phase 2)</h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Year</th>
+              <th>Start Balance</th>
+              <th>Interest</th>
+              <th>Withdrawal</th>
+              <th>End Balance</th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+      <footer>Assumes constant rates; monthly compounding; annual withdrawals at selected timing. Projections only — not financial advice.</footer>
+    </section>
+  </div>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const fmt = new Intl.NumberFormat(undefined, { style: 'currency', currency: guessCurrency() });
+
+    function guessCurrency(){
+      try {
+        const locale = navigator.language || 'en-US';
+        if (locale.includes('IN')) return 'INR';
+        if (locale.includes('GB')) return 'GBP';
+        if (locale.includes('CA')) return 'CAD';
+        if (locale.includes('AU')) return 'AUD';
+        if (/(DE|FR|IT|ES|NL|PT|IE)/.test(locale)) return 'EUR';
+        return 'USD';
+      } catch { return 'USD'; }
+    }
+
+    function n(v){
+      const x = Number(v); return Number.isFinite(x) ? x : 0;
+    }
+
+    function simulate(){
+      const p0 = Math.max(0, n($("p0").value));
+      const r1 = Math.max(0, n($("r1").value)) / 100; // annual
+      const y1 = Math.max(0, n($("y1").value));
+      const contrib = Math.max(0, n($("contrib").value));
+      const contribFreq = Number($("contribFreq").value); // 12 or 1
+
+      const wd = Math.max(0, n($("wd").value));
+      const r2 = Math.max(0, n($("r2").value)) / 100; // annual
+      const y2 = Math.max(0, n($("y2").value));
+      const wdTiming = $("wdTiming").value; // 'begin' | 'end'
+
+      const err = $("error");
+      err.style.display = 'none';
+      if ([p0,r1,y1,contrib,wd,r2,y2].some(v => v < 0)) { err.textContent = 'Inputs cannot be negative.'; err.style.display = 'block'; return; }
+
+      // Phase 1: monthly compounding; contributions monthly or yearly at end of period
+      const stepsPerYear = 12;
+      const i1 = r1 / stepsPerYear; // monthly rate
+      let bal = p0;
+      let totContrib = 0;
+      const totalSteps1 = Math.round(y1 * stepsPerYear);
+      for (let s = 1; s <= totalSteps1; s++) {
+        // interest for the month
+        bal *= (1 + i1);
+        // contribution
+        const isContribStep = (contribFreq === 12) ? true : (s % stepsPerYear === 0);
+        if (contrib > 0 && isContribStep) { bal += contrib; totContrib += contrib; }
+      }
+      const corpusAfterPhase1 = bal;
+
+      // Phase 2: monthly compounding; annual withdrawals at begin/end of each year
+      const i2 = r2 / stepsPerYear;
+      const years2 = Math.floor(y2); // we will simulate partial final year too
+      let schedule = [];
+      let depletedAt = null;
+      let current = corpusAfterPhase1;
+
+      for (let y = 1; y <= years2; y++) {
+        let start = current;
+        let interestAccrued = 0;
+
+        if (wdTiming === 'begin' && wd > 0) {
+          current -= wd;
+          if (current < 0) current = 0;
+        }
+
+        for (let m = 0; m < stepsPerYear; m++) {
+          const before = current;
+          current *= (1 + i2);
+          interestAccrued += (current - before);
+        }
+
+        if (wdTiming === 'end' && wd > 0) {
+          current -= wd;
+          if (current < 0) current = 0;
+        }
+
+        schedule.push({ year: y, start, interest: Math.max(0, interestAccrued), withdrawal: wd, end: current });
+        if (current <= 0 && depletedAt === null) { depletedAt = y; break; }
+      }
+
+      // If y2 has fractional part, simulate extra months
+      const fracYears = y2 - Math.floor(y2);
+      if (depletedAt === null && fracYears > 0) {
+        let start = current;
+        let interestAccrued = 0;
+        const extraMonths = Math.round(fracYears * stepsPerYear);
+
+        if (wdTiming === 'begin' && wd > 0) {
+          current -= wd; if (current < 0) current = 0;
+        }
+        for (let m = 0; m < extraMonths; m++) {
+          const before = current; current *= (1 + i2); interestAccrued += (current - before);
+        }
+        if (wdTiming === 'end' && wd > 0) { current -= wd; if (current < 0) current = 0; }
+
+        schedule.push({ year: (schedule.length + 1), start, interest: Math.max(0, interestAccrued), withdrawal: wd, end: current });
+        if (current <= 0 && depletedAt === null) depletedAt = schedule.length;
+      }
+
+      renderOutputs(corpusAfterPhase1, totContrib, schedule, depletedAt);
+    }
+
+    function renderOutputs(corpusAfterPhase1, totContrib, schedule, depletedAt){
+      $("corpus1").textContent = fmt.format(corpusAfterPhase1);
+      $("totContrib").textContent = fmt.format(totContrib);
+      $("depletion").textContent = depletedAt ? `Year ${depletedAt}` : '—';
+
+      // Table
+      const tb = $("tbody");
+      tb.innerHTML = '';
+      schedule.forEach(r => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>Year ${r.year}</td>
+                        <td>${fmt.format(r.start)}</td>
+                        <td>${fmt.format(r.interest)}</td>
+                        <td>${fmt.format(r.withdrawal)}</td>
+                        <td>${fmt.format(r.end)}</td>`;
+        tb.appendChild(tr);
+      });
+
+      // Chart
+      const bars = $("bars");
+      const xaxis = $("xaxis");
+      const yaxis = $("yaxis");
+      bars.innerHTML = ''; xaxis.innerHTML = ''; yaxis.innerHTML = '';
+      if (schedule.length === 0) return;
+      const vals = schedule.map(r => r.end);
+      const max = Math.max(...vals, corpusAfterPhase1);
+      const ticks = 4;
+      for (let t = ticks; t >= 0; t--) {
+        const v = (max * t / ticks);
+        const div = document.createElement('div');
+        div.textContent = fmt.format(v);
+        yaxis.appendChild(div);
+      }
+      schedule.forEach((r) => {
+        const h = (r.end / max) * 100;
+        const bar = document.createElement('div');
+        bar.className = 'bar';
+        bar.style.height = h + '%';
+        bar.title = `Year ${r.year}: ${fmt.format(r.end)}`;
+        bars.appendChild(bar);
+
+        const lbl = document.createElement('div');
+        lbl.style.flex = '1';
+        lbl.style.textAlign = 'center';
+        lbl.textContent = r.year;
+        xaxis.appendChild(lbl);
+      });
+    }
+
+    $("calcBtn").addEventListener('click', simulate);
+    $("resetBtn").addEventListener('click', () => {
+      const defaults = {
+        p0: 100000, r1: 8, y1: 10, contrib: 10000, contribFreq: 12,
+        wd: 120000, r2: 7, y2: 20, wdTiming: 'end'
+      };
+      Object.entries(defaults).forEach(([id,val])=>{ const el = $(id); el.value = String(val); });
+      $("tbody").innerHTML = '';
+      $("corpus1").textContent = '—';
+      $("totContrib").textContent = '—';
+      $("depletion").textContent = '—';
+      $("bars").innerHTML = $("xaxis").innerHTML = $("yaxis").innerHTML = '';
+      $("error").style.display = 'none';
+    });
+
+    // Auto‑run
+    simulate();
+  </script>
+</body>
+</html>
